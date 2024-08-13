@@ -1,4 +1,4 @@
-# Official DroidScript ScratchPad Extension
+# The Official DroidScript 'ScratchPad' Extension
 
 Project to create/modify and install the in-built 'ScratchPad' extension.
 
