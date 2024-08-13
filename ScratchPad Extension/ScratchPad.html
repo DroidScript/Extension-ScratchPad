@@ -1,0 +1,185 @@
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ScratchPad</title>
+     <script src="/.edit/extension.js"></script>
+     <link rel="stylesheet" href="/.edit/material/material-components.min.css" >
+     <script src="/.edit/material/material-components.min.js"></script>
+     <link rel="stylesheet" href="/.edit/material/material-icons.css">
+     <link rel="stylesheet" href="/.edit/material/roboto.css">
+     
+    <link rel="stylesheet" href="ScratchPad.css">
+    
+    <!-- Code Mirror -->
+    <link rel="stylesheet" href="/.edit/codemirror/codemirror.min.css" />
+    <link rel="stylesheet" href="/.edit/codemirror/ds-md-javascript.css" />
+</head>
+
+<script Language="Javascript">
+
+
+//Globals.
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+let editor = null;
+let lastErrorLine = -1
+
+
+//Initialise the extension.
+ext.Init()
+    
+//Called when extension is loaded nd ready.
+function ext_OnReady()
+{
+}
+
+//Handle extension tab switches us.
+function ext_OnSelect( name )
+{
+    if( editor) return
+    
+    editor = CodeMirror.fromTextArea($("#editor"), {
+        mode: "javascript",
+        theme: "ds-md-javascript",
+        lineNumbers: true,
+        autoRefresh: true,
+        readOnly: false,
+        extraKeys: { 
+            "Ctrl-S": (instance)=> { Save() }, 
+            "Cmd-S": (instance)=> { Save() }
+        }      
+    });
+    editor.on('change', (args) => { onCodeChanged() } )
+    
+    //Load last code snippet.
+    var js = localStorage.getItem("scratch_js")
+    if( js ) { 
+        editor.setValue( js )
+        editor.scrollIntoView( { line:0, ch:0 } )
+    }
+} 
+
+//Handle extension tab switches away.
+function ext_OnDeselect( name )
+{
+}
+
+//Handle buttons.
+function btn_Command( val )
+{
+    //Handle play button
+    if( val=="play_arrow" ) 
+    {
+        //Override the console.log function to it goes to the DS console.
+        AddScript( "console.log = function(m){ext.Log(m)}" )
+        
+        //Save in local storage
+        Save() 
+        
+        //Add script to document (use timeout to allow annotations to clear).
+        var code = editor.getValue()
+        setTimeout( function() { AddScript( code ) }, 10 )
+    }
+}
+
+//Save script in local storage.
+function Save() 
+{
+    var code = editor.getValue()
+    localStorage.setItem( "scratch_js", code )
+}
+
+//Catch errors
+window.addEventListener('error', function(e)  
+{
+    editor.addLineClass( e.lineno-1, "wrap", "cm-error-marker"  )
+    
+    elem = document.getElementsByClassName( "cm-error-marker"  )
+    elem[0].title = e.message
+    editor.scrollIntoView( { line:e.lineno-1, ch:0 } )
+    lastErrorLine = e.lineno-1
+    
+    setTimeout( ()=>{ console.log("ERROR: "+e.message); alert( e.message ) }, 100 )
+    
+}, false);
+
+
+//Add a script to current html document.
+function AddScript( js )
+{
+    var head = document.getElementsByTagName('head')[0]
+    var script = document.createElement('script')
+    script.type = 'text/javascript'
+    script.text = js
+    head.appendChild( script ) 
+    return script
+}
+
+//Remove a script from the current html document.
+function RemoveScript( script )
+{
+    document.removeChild( script )
+}
+
+//Dynamically add a class to document
+function AddClass( name, css )
+{
+    var style = document.createElement('style')
+    style.type = 'text/css'
+    style.innerHTML = '.'+name+' { '+css+' }'
+    var elem = document.getElementsByClassName(name)
+	if( elem.length ) 
+    	document.getElementsByTagName('head')[0].replaceChild(elem[0],style)
+    else 
+    	document.getElementsByTagName('head')[0].appendChild(style)
+}
+
+//Handle code changes
+function onCodeChanged()
+{
+    //Clear current error highlight
+    if( lastErrorLine > -1 ) 
+    	editor.removeLineClass( lastErrorLine, "wrap", "cm-error-marker"  )
+}
+
+</script>
+
+<body class="demo mdc-theme--background">
+
+    <div class="button-container">
+        <button type="button" class="mdc-button mdc-button--raised button1" onclick="btn_Command(this.innerText)">
+            <div class="mdc-button__ripple "></div>
+            <span class="mdc-button__label">
+                <span class="material-icons">play_arrow</span>
+            </span>
+        </button>
+    </div>
+
+    <div class="xxdemo-container">
+		<textarea id="editor">
+
+alert( "Hello World" )
+
+		</textarea>
+
+    </div>
+
+    <div id="dlg" class="mdc-dialog">
+    </div>
+
+    <div id="rclk" class="mdc-menu mdc-menu-surface">
+    </div>
+
+    <script Language="Javascript">
+        //document.addEventListener('contextmenu', event => event.preventDefault());
+        mdc.ripple.MDCRipple.attachTo(document.querySelector('.button1'));
+    </script>
+    
+     <!-- Code Mirror -->
+    <script src="/.edit/codemirror/codemirror.min.js"></script>
+    <script src="/.edit/codemirror/javascript.min.js"></script>
+         
+</body>
+</html>
+        
